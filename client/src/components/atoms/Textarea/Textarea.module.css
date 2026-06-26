@@ -1,0 +1,13 @@
+.textarea {
+  width: 100%;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 8px 11px;
+  color: var(--text);
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.textarea:focus { border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }
+.textarea::placeholder { color: var(--text-faint); }

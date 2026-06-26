@@ -1,0 +1,13 @@
+.iconbtn {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-sm);
+  color: var(--text-dim);
+  transition: background 0.12s, color 0.12s;
+}
+.iconbtn:hover { background: var(--hover); color: var(--text); }
+.iconbtn:active { background: var(--active); }
+.active { color: var(--accent); background: var(--accent-soft); }
+.iconbtn svg { width: 18px; height: 18px; }

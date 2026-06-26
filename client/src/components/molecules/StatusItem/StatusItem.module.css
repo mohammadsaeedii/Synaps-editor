@@ -1,0 +1,11 @@
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 5px;
+  color: inherit;
+}
+.item:hover { background: var(--hover); color: var(--text); }
+.item svg { width: 13px; height: 13px; }

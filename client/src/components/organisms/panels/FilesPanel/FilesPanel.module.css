@@ -1,0 +1,22 @@
+.root { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+.lang { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: var(--r-sm); border: 1px solid var(--border); color: var(--text-dim); font-family: var(--mono); font-size: 12px; }
+.lang:hover { background: var(--hover); color: var(--text); border-color: var(--border-strong); }
+.langIco { display: inline-grid; place-items: center; color: var(--text-faint); }
+.langIco svg { width: 14px; height: 14px; }
+.editor { flex: 1; min-height: 0; display: flex; overflow: hidden; background: var(--bg); }
+.gutter {
+  flex: none; overflow: hidden; box-sizing: border-box;
+  padding: 14px 10px 14px 14px; text-align: right;
+  color: var(--text-faint); background: var(--bg-deep); border-right: 1px solid var(--border-2);
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.7; white-space: pre; user-select: none;
+}
+.code {
+  flex: 1; min-width: 0; height: 100%; box-sizing: border-box;
+  padding: 14px 16px; resize: none; border: none; outline: none;
+  background: var(--bg); color: var(--text);
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.7;
+  white-space: pre; overflow: auto; tab-size: 2;
+}
+.status { flex: none; height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-top: 1px solid var(--border); background: var(--surface); color: var(--text-faint); font-family: var(--mono); font-size: 11.5px; }
+.statusLang { color: var(--text-dim); text-transform: lowercase; }
+.sep { opacity: 0.5; }

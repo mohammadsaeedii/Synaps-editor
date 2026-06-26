@@ -1,0 +1,84 @@
+/* =========================================================================
+   synapse · design system — tokens
+   The single source of truth for colour, type, radius, shadow and the IDE
+   layout metrics. Ported verbatim from the original styles.css so the
+   Next.js app is pixel-identical. Every component reads these custom
+   properties through CSS Modules, so the dark (default) and light themes —
+   plus the six runtime accents — resolve automatically.
+   ========================================================================= */
+
+/* ---------- tokens : dark (default) ------------------------------------ */
+:root {
+  --bg:        #0e1116;
+  --bg-deep:   #0a0d11;
+  --surface:   #151a21;
+  --surface-2: #1a202a;
+  --surface-3: #222b37;
+  --elevated:  #1c232e;
+  --hover:     rgba(255, 255, 255, 0.045);
+  --active:    rgba(255, 255, 255, 0.08);
+  --border:    rgba(255, 255, 255, 0.08);
+  --border-2:  rgba(255, 255, 255, 0.05);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  --text:       #e7eaf0;
+  --text-dim:   #9aa4b2;
+  --text-faint: #6a7484;
+
+  --accent:    #8b5cf6;
+  --accent-2:  #7c3aed;
+  --accent-fg: #ffffff;
+  --accent-soft: color-mix(in srgb, var(--accent) 16%, transparent);
+  --accent-line: color-mix(in srgb, var(--accent) 50%, transparent);
+
+  --danger: #f4476b;
+  --ok:     #34d399;
+  --warn:   #fbbf24;
+  --info:   #60a5fa;
+
+  --r-xs: 5px;
+  --r-sm: 7px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.28);
+  --shadow:    0 12px 38px rgba(0, 0, 0, 0.46), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-pop: 0 16px 48px rgba(0, 0, 0, 0.5);
+
+  --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+
+  --act-w: 48px;
+  --row-h: 26px;
+  --tab-h: 36px;
+  --top-h: 44px;
+  --status-h: 26px;
+
+  color-scheme: dark;
+}
+
+/* ---------- tokens : light --------------------------------------------- */
+[data-theme="light"] {
+  --bg:        #f6f7f9;
+  --bg-deep:   #eceef2;
+  --surface:   #ffffff;
+  --surface-2: #f4f5f7;
+  --surface-3: #e9ebef;
+  --elevated:  #ffffff;
+  --hover:     rgba(17, 24, 39, 0.04);
+  --active:    rgba(17, 24, 39, 0.075);
+  --border:    rgba(17, 24, 39, 0.10);
+  --border-2:  rgba(17, 24, 39, 0.06);
+  --border-strong: rgba(17, 24, 39, 0.18);
+
+  --text:       #1c2430;
+  --text-dim:   #5a6473;
+  --text-faint: #8b95a3;
+
+  --accent-fg: #ffffff;
+  --shadow-sm: 0 1px 3px rgba(17, 24, 39, 0.10);
+  --shadow:    0 14px 40px rgba(17, 24, 39, 0.16), 0 2px 6px rgba(17, 24, 39, 0.08);
+  --shadow-pop: 0 18px 50px rgba(17, 24, 39, 0.18);
+  color-scheme: light;
+}

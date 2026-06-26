@@ -1,0 +1,61 @@
+/* The redesigned project tree. Ported from the original `.tw-*` rules. */
+.explorer { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+.filter { padding: 8px; border-bottom: 1px solid var(--border-2); display: flex; flex-direction: column; gap: 7px; }
+.search { display: flex; align-items: center; gap: 6px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 0 4px 0 9px; }
+.search:focus-within { border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }
+.searchIcon { color: var(--text-faint); display: grid; }
+.searchIcon svg { width: 15px; height: 15px; }
+.searchInput { border: none; background: none; padding: 7px 2px; outline: none; color: var(--text); width: 100%; }
+.searchInput::placeholder { color: var(--text-faint); }
+.searchFilter { width: 26px; height: 26px; }
+.searchFilterOn { color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 5px 2px 8px; border-radius: 999px; background: var(--accent-soft); color: color-mix(in srgb, var(--accent) 85%, var(--text)); font-size: 11px; font-weight: 600; }
+.chipX { display: grid; }
+.chipX svg { width: 11px; height: 11px; }
+
+.scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 0 16px; }
+
+.groupHead { display: flex; align-items: center; gap: 3px; height: 26px; padding: 0 8px 0 6px; cursor: pointer; color: var(--text-dim); user-select: none; }
+.groupHead:hover { color: var(--text); }
+.groupHead:hover .add { opacity: 1; }
+.caret { display: grid; place-items: center; width: 16px; height: 16px; color: var(--text-faint); transition: transform 0.12s; }
+.caret svg { width: 13px; height: 13px; }
+.caretOpen { transform: rotate(90deg); }
+.groupLabel { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.count { font-size: 10.5px; color: var(--text-faint); background: var(--surface-2); padding: 0 6px; border-radius: 999px; min-width: 18px; text-align: center; }
+.add { opacity: 0; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 4px; color: var(--text-dim); transition: opacity 0.12s; }
+.add:hover { background: var(--active); color: var(--text); }
+.add svg { width: 14px; height: 14px; }
+.groupBody { padding-bottom: 4px; }
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--row-h);
+  padding: 0 8px 0 calc(8px + var(--depth, 0) * 13px);
+  cursor: pointer;
+  color: var(--text-dim);
+  position: relative;
+  user-select: none;
+}
+.row:hover { background: var(--hover); color: var(--text); }
+.row:hover .more { opacity: 1; }
+.rowActive { background: var(--accent-soft); color: var(--text); }
+.rowIcon { display: grid; place-items: center; color: var(--text-faint); flex: none; }
+.rowIcon svg { width: 16px; height: 16px; }
+.rowActive .rowIcon, .folder .rowIcon { color: var(--accent); }
+.rowLabel { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
+.rowLabel mark { background: var(--accent-soft); color: var(--accent); border-radius: 3px; }
+.flag { display: grid; color: var(--text-faint); }
+.flagFav { color: var(--warn); }
+.flag svg { width: 12px; height: 12px; }
+.time { font-size: 10.5px; color: var(--text-faint); margin-left: 4px; }
+.more { opacity: 0; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 4px; color: var(--text-dim); flex: none; }
+.more:hover { background: var(--active); color: var(--text); }
+.more svg { width: 15px; height: 15px; }
+.folder { padding-left: calc(2px + var(--depth, 0) * 13px); }
+.folder .caret { margin-left: -3px; }
+.empty { padding: 4px 8px 4px calc(14px + var(--depth, 0) * 13px); color: var(--text-faint); font-size: 11.5px; font-style: italic; }

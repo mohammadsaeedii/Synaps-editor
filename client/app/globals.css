@@ -1,0 +1,41 @@
+/* =========================================================================
+   synapse · global stylesheet
+   Only the truly global layer lives here: the design tokens, the base reset,
+   custom scrollbars, a handful of element defaults and the markdown styles
+   (which target injected HTML). Everything else is scoped to a component via
+   CSS Modules — see src/components/**.
+   ========================================================================= */
+@import "../src/design/tokens.css";
+@import "../src/design/markdown.css";
+
+/* ---------- base ------------------------------------------------------- */
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+:root[data-motion="reduce"] * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+button { font: inherit; color: inherit; cursor: pointer; background: none; border: none; }
+input, textarea, select { font: inherit; color: inherit; }
+a { color: var(--accent); text-decoration: none; }
+::selection { background: var(--accent-soft); }
+:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 1px; border-radius: 4px; }
+kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border-radius: 5px; background: var(--surface-3); border: 1px solid var(--border); color: var(--text-dim); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; clip: rect(0 0 0 0); overflow: hidden; }
+
+/* scrollbars */
+* { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 8px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); background-clip: content-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* portal roots (toasts, menus, palette, dialogs) mount here */
+#overlay-root { position: relative; z-index: 200; }

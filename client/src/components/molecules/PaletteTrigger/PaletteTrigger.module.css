@@ -1,0 +1,21 @@
+.trigger {
+  flex: 1;
+  max-width: 520px;
+  margin: 0 auto;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-faint);
+  font-size: 12.5px;
+}
+.trigger:hover { background: var(--surface-2); border-color: var(--border-strong); }
+.trigger svg { width: 15px; height: 15px; }
+.trigger span { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 860px) {
+  .trigger span { display: none; }
+}

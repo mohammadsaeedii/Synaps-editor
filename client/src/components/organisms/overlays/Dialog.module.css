@@ -1,0 +1,38 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 250;
+  padding: 20px;
+  backdrop-filter: blur(2px);
+}
+.modal {
+  width: min(400px, 94vw);
+  background: var(--elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+  animation: pop 0.12s ease;
+}
+@keyframes pop {
+  from { transform: translateY(-6px) scale(0.99); opacity: 0; }
+}
+.head { display: flex; align-items: center; padding: 14px 14px 14px 18px; border-bottom: 1px solid var(--border); }
+.title { flex: 1; font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 9px; }
+.body { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.msg { margin: 0; color: var(--text-dim); }
+.input {
+  width: 100%;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 8px 11px;
+  color: var(--text);
+  outline: none;
+}
+.input:focus { border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }
+.foot { display: flex; justify-content: flex-end; gap: 9px; padding: 14px 18px; border-top: 1px solid var(--border); }

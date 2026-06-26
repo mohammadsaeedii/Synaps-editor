@@ -1,0 +1,28 @@
+.stack { flex: 1; display: flex; min-height: 0; }
+.group { flex: 1 1 0; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg); }
+.groupFocused .tabbar { background: var(--surface); }
+.divider { width: 1px; background: var(--border); flex: none; }
+
+.tabbar { height: var(--tab-h); flex: none; display: flex; align-items: stretch; background: var(--bg-deep); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+.tabbar::-webkit-scrollbar { display: none; }
+.tab { display: inline-flex; align-items: center; gap: 7px; padding: 0 8px 0 13px; max-width: 220px; border-right: 1px solid var(--border-2); color: var(--text-dim); position: relative; white-space: nowrap; flex: none; cursor: pointer; }
+.tab:hover { background: var(--hover); color: var(--text); }
+.tab:hover .tabClose { opacity: 1; }
+.tabActive { background: var(--bg); color: var(--text); }
+.tabActive::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--accent); }
+.tabIcon { display: grid; color: var(--text-faint); flex: none; }
+.tabActive .tabIcon { color: var(--accent); }
+.tabIcon svg { width: 15px; height: 15px; }
+.tabLabel { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; }
+.tabClose { opacity: 0; width: 18px; height: 18px; display: grid; place-items: center; border-radius: 4px; color: var(--text-dim); flex: none; transition: opacity 0.12s; }
+.tabClose:hover { background: var(--active); color: var(--text); }
+.tabClose svg { width: 13px; height: 13px; }
+.tabActions { display: flex; align-items: center; gap: 1px; margin-left: auto; padding: 0 4px; position: sticky; right: 0; background: var(--bg-deep); }
+
+.groupbody { flex: 1; min-height: 0; position: relative; display: flex; }
+.mount { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+.groupEmpty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: var(--text-faint); text-align: center; padding: 24px; }
+.groupEmptyMark { color: var(--accent); opacity: 0.6; }
+.groupEmptyMark svg { width: 40px; height: 40px; }
+.groupEmptyRow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }

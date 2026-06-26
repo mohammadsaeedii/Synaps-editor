@@ -1,0 +1,18 @@
+.statusbar {
+  height: var(--status-h);
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 0 4px;
+  background: var(--bg-deep);
+  border-top: 1px solid var(--border);
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+.dot { width: 8px; height: 8px; border-radius: 3px; }
+.spacer { flex: 1; }
+.badge { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 0 5px; font-size: 10px; }
+.statusdot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); }
+.live .statusdot { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent); }
+.mock .statusdot { background: var(--warn); }

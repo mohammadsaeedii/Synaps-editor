@@ -1,0 +1,15 @@
+.top {
+  height: var(--top-h);
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 0 10px;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--border);
+}
+.left { display: flex; align-items: center; gap: 10px; min-width: 200px; }
+.right { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+@media (max-width: 560px) {
+  .left { min-width: 0; }
+}

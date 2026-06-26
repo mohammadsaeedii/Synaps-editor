@@ -1,0 +1,22 @@
+.root { flex: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; background: var(--bg-deep); }
+.bar { height: 30px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-bottom: 1px solid var(--border-2); color: var(--text-faint); font-size: 11.5px; }
+.barDot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 20%, transparent); }
+.cwd { font-family: var(--mono); }
+.barSpacer { flex: 1; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 12px 14px; font-family: var(--mono); font-size: 12.5px; line-height: 1.55; }
+.out { white-space: pre-wrap; word-break: break-word; color: var(--text-dim); }
+.dim { color: var(--text-faint); }
+.err { color: var(--danger); }
+.ai { color: var(--text); }
+.echo { display: flex; flex-wrap: wrap; gap: 0; margin-top: 2px; }
+.echoPrompt { color: var(--accent); white-space: pre; }
+.echoCmd { color: var(--text); }
+.ls { display: flex; flex-wrap: wrap; gap: 4px 22px; }
+.lsDir { color: var(--accent); font-weight: 600; }
+.lsFile { color: var(--text-dim); }
+.line { display: flex; align-items: baseline; gap: 0; margin-top: 2px; }
+.prompt { white-space: pre; }
+.promptProj { color: var(--ok); font-weight: 600; }
+.promptPath { color: var(--accent); }
+.promptSig { color: var(--text-faint); }
+.input { flex: 1; border: none; background: none; padding: 0; font-family: var(--mono); font-size: 12.5px; color: var(--text); caret-color: var(--accent); outline: none; }

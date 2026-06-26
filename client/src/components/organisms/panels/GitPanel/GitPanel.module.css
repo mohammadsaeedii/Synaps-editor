@@ -1,0 +1,69 @@
+.root { display: flex; flex-direction: column; flex: 1; min-height: 0; height: 100%; background: var(--bg); color: var(--text); }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; }
+
+.head { flex: none; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border-2); }
+.branch { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 9px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font-weight: 600; font-size: 12.5px; min-width: 0; }
+.branch:hover { background: var(--hover); border-color: var(--border-strong); }
+.branchIco { display: inline-flex; color: var(--accent); flex: none; }
+.branchIco svg { width: 15px; height: 15px; }
+.branchName { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.branchChev { display: inline-flex; color: var(--text-faint); flex: none; }
+.branchChev svg { width: 14px; height: 14px; }
+.headActs { margin-left: auto; display: flex; align-items: center; gap: 6px; flex: none; }
+
+.commitbox { flex: none; display: flex; flex-direction: column; gap: 9px; padding: 10px; border-bottom: 1px solid var(--border-2); }
+.msg { resize: none; min-height: 36px; line-height: 1.45; }
+.commitbar { display: flex; align-items: center; gap: 10px; }
+.commitHint { font-size: 11.5px; color: var(--text-faint); }
+.commitBtn { margin-left: auto; }
+
+.sec { padding: 9px 6px 11px; }
+.sec + .sec { border-top: 1px solid var(--border-2); }
+.secHead { display: flex; align-items: center; gap: 8px; padding: 2px 8px 7px; }
+.secTitle { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); }
+.count { min-width: 18px; height: 16px; padding: 0 5px; display: inline-grid; place-items: center; border-radius: 999px; background: var(--surface-3); color: var(--text-dim); font-size: 10.5px; font-weight: 700; }
+.secActs { margin-left: auto; display: flex; gap: 6px; }
+.link { font-size: 11.5px; font-weight: 600; color: var(--accent); padding: 2px 7px; border-radius: var(--r-xs); }
+.link:hover { background: var(--accent-soft); }
+.clean { display: flex; align-items: center; gap: 8px; padding: 7px 10px; font-size: 12.5px; color: var(--text-faint); }
+.cleanIco { display: inline-flex; color: var(--ok); }
+.cleanIco svg { width: 16px; height: 16px; }
+
+.list { display: flex; flex-direction: column; }
+.row { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 2px 8px 2px 4px; border-radius: var(--r-sm); }
+.row:hover { background: var(--hover); }
+.stage { color: var(--text-faint); }
+.stage:hover { color: var(--accent); background: var(--accent-soft); }
+.badge { width: 18px; height: 18px; flex: none; display: grid; place-items: center; border-radius: 5px; border: 1px solid var(--border); font-family: var(--mono); font-size: 10.5px; font-weight: 700; line-height: 1; color: var(--text-dim); }
+.badge[data-s="M"] { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); border-color: color-mix(in srgb, var(--warn) 34%, transparent); }
+.badge[data-s="A"] { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); border-color: color-mix(in srgb, var(--ok) 34%, transparent); }
+.badge[data-s="D"] { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); border-color: color-mix(in srgb, var(--danger) 34%, transparent); }
+.badge[data-s="U"] { color: var(--info); background: color-mix(in srgb, var(--info) 14%, transparent); border-color: color-mix(in srgb, var(--info) 34%, transparent); }
+.path { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; font-size: 12.5px; white-space: nowrap; overflow: hidden; }
+.fname { color: var(--text); overflow: hidden; text-overflow: ellipsis; flex: none; max-width: 100%; }
+.fdir { color: var(--text-faint); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.rowActs { margin-left: auto; display: flex; align-items: center; gap: 1px; opacity: 0; }
+.row:hover .rowActs { opacity: 1; }
+
+.history { padding-bottom: 16px; }
+.graph { display: flex; flex-direction: column; padding: 0 4px; }
+.commit { display: flex; gap: 6px; position: relative; }
+.gutter { width: 24px; flex: none; position: relative; }
+.gutter::before { content: ""; position: absolute; left: 12px; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--border-strong); }
+.commitFirst .gutter::before { top: 17px; }
+.commitLast .gutter::before { top: 0; bottom: auto; height: 17px; }
+.node { position: absolute; left: 12px; top: 17px; width: 9px; height: 9px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--surface-3); border: 2px solid var(--text-faint); box-shadow: 0 0 0 3px var(--bg); }
+.nodeHead { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px var(--accent-soft); }
+.cbody { flex: 1; min-width: 0; padding: 7px 8px 9px 2px; border-radius: var(--r-sm); }
+.commit:hover .cbody { background: var(--hover); }
+.crow { display: flex; align-items: center; gap: 8px; }
+.hash { flex: none; font-family: var(--mono); font-size: 11.5px; color: var(--accent); }
+.cmsg { flex: 1; min-width: 0; font-size: 12.5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.headbadge { display: inline-flex; align-items: center; gap: 3px; flex: none; padding: 1px 7px 1px 5px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-3); color: var(--text-dim); font-size: 10px; font-weight: 700; }
+.headbadge svg { width: 11px; height: 11px; }
+.headbadgeCurrent { background: var(--accent-soft); color: color-mix(in srgb, var(--accent) 86%, var(--text)); border-color: var(--accent-line); }
+.cmeta { display: flex; align-items: center; gap: 7px; margin-top: 3px; font-size: 11px; color: var(--text-faint); }
+.author { color: var(--text-dim); }
+.mfiles { margin-left: auto; }
+.recent { display: flex; flex-direction: column; gap: 1px; }
+.recent .cbody { padding: 6px 8px; }

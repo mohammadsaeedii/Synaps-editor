@@ -1,0 +1,15 @@
+.select {
+  width: 100%;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 8px 30px 8px 11px;
+  color: var(--text);
+  outline: none;
+  appearance: none;
+  transition: border-color 0.12s, box-shadow 0.12s;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none'><path d='M4 6l4 4 4-4' stroke='%239aa4b2' stroke-width='1.6' stroke-linecap='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+}
+.select:focus { border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }

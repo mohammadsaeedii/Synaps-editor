@@ -1,0 +1,4 @@
+.rightpanel { flex: none; display: flex; flex-direction: column; background: var(--surface); border-left: 1px solid var(--border); min-width: 0; }
+.head { height: 36px; flex: none; display: flex; align-items: center; padding: 0 6px 0 12px; border-bottom: 1px solid var(--border-2); }
+.title { flex: 1; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); }
+.body { flex: 1; min-height: 0; overflow: auto; }

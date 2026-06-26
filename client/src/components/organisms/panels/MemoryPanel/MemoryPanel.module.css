@@ -1,0 +1,10 @@
+.root { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; }
+.doc { max-width: 760px; margin: 0 auto; padding: 26px 28px 44px; display: flex; flex-direction: column; gap: 14px; }
+.hint { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 0 2px; font-size: 11.5px; color: var(--text-faint); }
+.hint svg { width: 15px; height: 15px; flex: none; margin-top: 1px; }
+.card { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); transition: border-color 0.12s, box-shadow 0.12s; }
+.card:focus-within { border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }
+.editor { min-height: 240px; resize: none; border: none; background: none; padding: 2px; font-size: 14px; line-height: 1.7; outline: none; color: var(--text); width: 100%; }
+.meta { padding-top: 2px; display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text-faint); }
+.meta svg { width: 14px; height: 14px; }

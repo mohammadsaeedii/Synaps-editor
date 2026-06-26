@@ -1,0 +1,7 @@
+.splitter { flex: none; position: relative; z-index: 5; }
+.v { width: 1px; cursor: col-resize; background: var(--border); }
+.h { height: 1px; cursor: row-resize; background: var(--border); }
+.splitter::after { content: ""; position: absolute; inset: -3px; }
+.v::after { inset: 0 -3px; }
+.h::after { inset: -3px 0; }
+.splitter:hover, .active { background: var(--accent); }
