@@ -10,7 +10,7 @@ import { GitPanel } from "@/components/organisms/panels/GitPanel/GitPanel";
 import s from "./SidePanel.module.css";
 
 export function SidePanel() {
-  const { newChat, promptDialog } = useWorkspace();
+  const { newChat, newItem, promptDialog } = useWorkspace();
   const sideView = useStore((st) => st.session.sideView);
   const sideWidth = useStore((st) => st.session.sideWidth);
   const meta = SIDE_VIEWS.find((v) => v.id === sideView) ?? SIDE_VIEWS[0];
@@ -18,7 +18,10 @@ export function SidePanel() {
   const explorerActions = (
     <>
       <button type="button" className={s.headBtn} title="New chat" onClick={() => newChat()}>
-        <Icon name="plus" size={16} />
+        <Icon name="newChat" size={16} />
+      </button>
+      <button type="button" className={s.headBtn} title="New file" onClick={() => newItem("file")}>
+        <Icon name="newFile" size={16} />
       </button>
       <button
         type="button"
@@ -29,7 +32,7 @@ export function SidePanel() {
           if (nm?.trim()) store.createFolder({ name: nm.trim() });
         }}
       >
-        <Icon name="folder" size={16} />
+        <Icon name="newFolder" size={16} />
       </button>
       <button
         type="button"

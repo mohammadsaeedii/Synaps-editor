@@ -10,13 +10,14 @@ import { useWorkspace } from "@/lib/workspace";
 import s from "./TopBar.module.css";
 
 export function TopBar() {
-  const { openTab, openPalette, newChat, newItem, newProject, toggleSide, toggleDock, toggleRight, openMenu } = useWorkspace();
+  const { openTab, openPalette, newChat, newItem, pickFiles, newProject, toggleSide, toggleDock, toggleRight, openMenu } = useWorkspace();
 
   const newMenu = (e: ReactMouseEvent<HTMLButtonElement>) => {
     const items: MenuItem[] = [
       { head: "Create" },
       { label: "Chat", icon: "chat", hint: "⌘N", onClick: () => newChat() },
-      { label: "File", icon: "file", onClick: () => newItem("file") },
+      { label: "Add file…", icon: "file", onClick: () => pickFiles() },
+      { label: "Blank file", icon: "file", onClick: () => newItem("file") },
       { label: "Note", icon: "notes", onClick: () => newItem("note") },
       { label: "Task", icon: "tasks", onClick: () => newItem("task") },
       { label: "Prompt", icon: "prompts", onClick: () => newItem("prompt") },

@@ -5,6 +5,7 @@
    panel and the simulated Agents panel. Ported from the original ai.js.
    ========================================================================= */
 import { store } from "./store/store";
+import { buildCodeContext } from "./engine";
 
 export interface ApiMessage {
   role: "user" | "assistant";
@@ -16,6 +17,8 @@ export interface RunOptions {
   model?: string;
   signal?: AbortSignal;
   onChunk: (text: string) => void;
+  /** When true (default), append code-aware context from the IDE engine. */
+  codeAware?: boolean;
 }
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -36,8 +39,10 @@ export function apiHistory(messages: { role: "user" | "assistant"; text: string;
   return msgs;
 }
 
-async function streamClaude(history: ApiMessage[], { system, model, onChunk, signal }: RunOptions): Promise<void> {
+async function streamClaude(history: ApiMessage[], { system, model, onChunk, signal, codeAware = true }: RunOptions): Promise<void> {
   const s = store.settings();
+  const ctx = codeAware ? buildCodeContext() : null;
+  const mergedSystem = [system, ctx?.systemAppend].filter(Boolean).join("\n\n");
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     signal,
@@ -51,7 +56,7 @@ async function streamClaude(history: ApiMessage[], { system, model, onChunk, sig
       model: model || s.model || "claude-opus-4-8",
       max_tokens: 2048,
       stream: true,
-      ...(system ? { system } : {}),
+      ...(mergedSystem ? { system: mergedSystem } : {}),
       messages: history,
     }),
   });

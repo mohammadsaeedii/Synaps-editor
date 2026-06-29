@@ -55,6 +55,7 @@ export interface DockPanelMeta {
 
 export const DOCK_PANELS: DockPanelMeta[] = [
   { id: "terminal", title: "Terminal", icon: "terminal" },
+  { id: "problems", title: "Problems", icon: "warn" },
   { id: "git", title: "Source Control", icon: "git" },
 ];
 

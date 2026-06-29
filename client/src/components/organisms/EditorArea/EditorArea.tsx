@@ -2,6 +2,7 @@
 import { Fragment } from "react";
 import { Button } from "@/components/atoms/Button/Button";
 import { IconButton } from "@/components/atoms/IconButton/IconButton";
+import { FileIcon } from "@/components/molecules/FileIcon/FileIcon";
 import { Icon, type IconName } from "@/design/icons";
 import { PANEL_META, tabKey } from "@/lib/panels";
 import { store, useStore } from "@/lib/store/store";
@@ -11,7 +12,7 @@ import { renderPanel } from "../panels/registry";
 import s from "./EditorArea.module.css";
 
 export function EditorArea() {
-  const { closeTab, closeOthers, setActiveTab, focusGroup, splitActive, closeGroup, newChat, newItem, openTab, openMenu } = useWorkspace();
+  const { closeTab, closeOthers, setActiveTab, focusGroup, splitActive, closeGroup, newChat, newItem, pickFiles, openTab, openMenu } = useWorkspace();
   const groups = useStore((st) => st.session.groups) ?? [{ active: -1, tabs: [] }];
   const activeGroup = useStore((st) => st.session.activeGroup);
 
@@ -22,7 +23,17 @@ export function EditorArea() {
     const o = m.kind ? store.get(m.kind, refId) : null;
     return o ? store.titleOf(m.kind!, o) : m.title;
   };
-  const tabIcon = (panel: string): IconName => PANEL_META[panel]?.icon ?? "file";
+  const tabIcon = (panel: string, refId: string | null): IconName | "file-icon" => {
+    if (panel === "file" && refId) {
+      const f = store.get("file", refId);
+      if (f) return "file-icon";
+    }
+    return PANEL_META[panel]?.icon ?? "file";
+  };
+  const tabFileName = (panel: string, refId: string | null): string | null => {
+    if (panel !== "file" || !refId) return null;
+    return store.get("file", refId)?.name ?? null;
+  };
 
   return (
     <div className={s.stack}>
@@ -60,7 +71,11 @@ export function EditorArea() {
                     }
                   >
                     <span className={s.tabIcon}>
-                      <Icon name={tabIcon(t.panel)} />
+                      {tabIcon(t.panel, t.refId) === "file-icon" && tabFileName(t.panel, t.refId) ? (
+                        <FileIcon filename={tabFileName(t.panel, t.refId)!} size={14} />
+                      ) : (
+                        <Icon name={tabIcon(t.panel, t.refId) as IconName} />
+                      )}
                     </span>
                     <span className={s.tabLabel}>{tabTitle(t.panel, t.refId)}</span>
                     <button
@@ -105,6 +120,9 @@ export function EditorArea() {
                     </Button>
                     <Button icon="notes" onClick={() => newItem("note")}>
                       New note
+                    </Button>
+                    <Button icon="file" onClick={() => pickFiles()}>
+                      Add file
                     </Button>
                     <Button icon="overview" onClick={() => openTab("overview", null)}>
                       Open overview

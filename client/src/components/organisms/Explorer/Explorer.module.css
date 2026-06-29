@@ -44,6 +44,11 @@
 .row:hover { background: var(--hover); color: var(--text); }
 .row:hover .more { opacity: 1; }
 .rowActive { background: var(--accent-soft); color: var(--text); }
+.rowReveal { animation: revealFlash 1.2s ease; }
+@keyframes revealFlash {
+  0%, 100% { background: transparent; }
+  30% { background: var(--accent-soft); }
+}
 .rowIcon { display: grid; place-items: center; color: var(--text-faint); flex: none; }
 .rowIcon svg { width: 16px; height: 16px; }
 .rowActive .rowIcon, .folder .rowIcon { color: var(--accent); }
@@ -51,6 +56,8 @@
 .rowLabel mark { background: var(--accent-soft); color: var(--accent); border-radius: 3px; }
 .flag { display: grid; color: var(--text-faint); }
 .flagFav { color: var(--warn); }
+.flagErr { color: var(--danger, #e55); }
+.flagWarn { color: var(--warn, #da3); opacity: 0.85; }
 .flag svg { width: 12px; height: 12px; }
 .time { font-size: 10.5px; color: var(--text-faint); margin-left: 4px; }
 .more { opacity: 0; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 4px; color: var(--text-dim); flex: none; }

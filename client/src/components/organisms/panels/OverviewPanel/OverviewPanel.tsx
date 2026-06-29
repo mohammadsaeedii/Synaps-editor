@@ -10,7 +10,7 @@ import s from "./OverviewPanel.module.css";
 
 export function OverviewPanel() {
   useStoreVersion();
-  const { newChat, newItem, open, openTab, openDock, activateSide } = useWorkspace();
+  const { newChat, newItem, pickFiles, open, openTab, openDock, activateSide } = useWorkspace();
   const p = store.activeProject();
   if (!p) return null;
   const pid = p.id;
@@ -65,8 +65,8 @@ export function OverviewPanel() {
           <Button icon="tasks" onClick={() => newItem("task")}>
             Task
           </Button>
-          <Button icon="file" onClick={() => newItem("file")}>
-            File
+          <Button icon="file" onClick={() => pickFiles()}>
+            Add file
           </Button>
           <Button icon="prompts" onClick={() => newItem("prompt")}>
             Prompt

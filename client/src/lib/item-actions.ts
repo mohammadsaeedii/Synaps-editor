@@ -5,6 +5,8 @@
    ui.js. Exposed as a hook so it can reach the workspace dialogs + toasts.
    ========================================================================= */
 "use client";
+import { clearViewState } from "./files/editor-state";
+import { downloadFileItem } from "./files/file-service";
 import { KINDS } from "./store/kinds";
 import { store } from "./store/store";
 import type { Kind } from "./store/types";
@@ -17,7 +19,7 @@ const updateField = (kind: Kind, id: string, p: Record<string, unknown>) =>
   (store.update as unknown as (k: Kind, id: string, patch: Record<string, unknown>, o?: { silent?: boolean }) => void)(kind, id, p);
 
 export function useItemActions() {
-  const { confirm, promptDialog, toast } = useWorkspace();
+  const { confirm, promptDialog, toast, revealInExplorer } = useWorkspace();
 
   const renameItem = async (kind: Kind, id: string) => {
     const o = store.get(kind, id);
@@ -42,6 +44,7 @@ export function useItemActions() {
     if (!o) return;
     const ok = await confirm(`Delete “${store.titleOf(kind, o)}”? This cannot be undone.`, { title: "Delete", okText: "Delete", danger: true });
     if (ok) {
+      if (kind === "file") clearViewState(id);
       store.remove(kind, id);
       toast("Deleted", "ok");
     }
@@ -57,16 +60,23 @@ export function useItemActions() {
   const itemMenuItems = (kind: Kind, id: string, opts: { onOpen?: () => void; extra?: MenuItem[] } = {}): MenuItem[] => {
     const o = store.get(kind, id);
     if (!o) return [];
+    const openIcon = kind === "file" ? "file" : kind === "chat" ? "chat" : "explorer";
     return [
-      opts.onOpen ? { label: "Open", icon: "chat", onClick: opts.onOpen } : undefined,
+      opts.onOpen ? { label: "Open", icon: openIcon, onClick: opts.onOpen } : undefined,
       { label: "Rename", icon: "edit", onClick: () => renameItem(kind, id) },
       { label: "Duplicate", icon: "duplicate", onClick: () => { if (store.duplicate(kind, id)) toast("Duplicated", "ok"); } },
+      ...(kind === "file"
+        ? [
+            { label: "Download", icon: "download", onClick: () => { downloadFileItem(store.get("file", id)!); toast("Downloaded", "ok"); } },
+            { label: "Reveal in sidebar", icon: "explorer", onClick: () => revealInExplorer(id) },
+          ]
+        : []),
       { label: o.pinned ? "Unpin" : "Pin", icon: "pin", onClick: () => store.togglePin(kind, id) },
       { label: o.favorite ? "Unfavorite" : "Favorite", icon: "star", onClick: () => store.toggleFav(kind, id) },
       { label: "Tags…", icon: "tag", onClick: () => editTags(kind, id) },
       ...(opts.extra || []),
       { sep: true },
-      { label: "Export", icon: "download", onClick: () => exportItem(kind, id) },
+      { label: "Export metadata", icon: "download", onClick: () => exportItem(kind, id) },
       { label: "Delete", icon: "trash", danger: true, onClick: () => deleteItem(kind, id) },
     ].filter(Boolean) as MenuItem[];
   };

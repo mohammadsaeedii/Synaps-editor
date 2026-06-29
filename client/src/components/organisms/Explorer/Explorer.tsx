@@ -1,6 +1,9 @@
 "use client";
-import { type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode, useEffect, useRef } from "react";
+import { FileIcon } from "@/components/molecules/FileIcon/FileIcon";
 import { Icon, type IconName } from "@/design/icons";
+import { diagnosticsService } from "@/lib/engine";
+import { useEngineEvent } from "@/lib/engine/hooks";
 import { fuzzy, hi } from "@/lib/fuzzy";
 import { useItemActions } from "@/lib/item-actions";
 import { KINDS } from "@/lib/store/kinds";
@@ -15,13 +18,39 @@ const depthStyle = (d: number): CSSProperties => ({ ["--depth" as string]: Strin
 
 export function Explorer() {
   useStoreVersion();
-  const { open, newChat, newItem, openMenu, openTab } = useWorkspace();
+  useEngineEvent("DiagnosticsChanged");
+  const { open, newChat, newItem, pickFiles, openMenu, openTab } = useWorkspace();
   const { itemMenuItems } = useItemActions();
+  const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const pid = store.getState().ui.activeProjectId;
   const session = store.session();
   const xf = session.explorer ?? { groups: {}, query: "", tag: "", favOnly: false };
   const activeChatId = store.getState().ui.activeChatId;
+
+  const activeFileId = (() => {
+    const groups = session.groups ?? [];
+    const ag = session.activeGroup ?? 0;
+    const g = groups[ag];
+    const tab = g?.tabs[g.active];
+    return tab?.panel === "file" ? tab.refId : null;
+  })();
+
+  useEffect(() => {
+    const revealId = xf.revealFileId;
+    if (!revealId) return;
+    const el = rowRefs.current.get(revealId);
+    if (el) {
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+    const t = setTimeout(() => {
+      const ex = store.session().explorer ?? xf;
+      if (ex.revealFileId === revealId) {
+        store.setSession({ explorer: { ...ex, revealFileId: null } });
+      }
+    }, 1400);
+    return () => clearTimeout(t);
+  }, [xf.revealFileId]);
 
   const setExplorer = (p: Partial<typeof xf>) => store.setSession({ explorer: { ...xf, ...p } });
   const groupOpen = (id: string, def = true) => (id in xf.groups ? xf.groups[id] : def);
@@ -39,21 +68,53 @@ export function Explorer() {
   };
 
   /* ---- a leaf row ---- */
-  const Leaf = ({ kind, o, depth, icon, time }: { kind: Kind; o: AnyItem; depth: number; icon?: IconName; time?: number }) => {
+  const Leaf = ({
+    kind,
+    o,
+    depth,
+    icon,
+    fileName,
+    time,
+  }: {
+    kind: Kind;
+    o: AnyItem;
+    depth: number;
+    icon?: IconName;
+    fileName?: string;
+    time?: number;
+  }) => {
     const title = store.titleOf(kind, o);
-    const active = activeChatId === o.id && kind === "chat";
+    const active = (activeChatId === o.id && kind === "chat") || (activeFileId === o.id && kind === "file");
+    const reveal = kind === "file" && xf.revealFileId === o.id;
+    const fileDiags = kind === "file" ? diagnosticsService.getForFile(o.id) : [];
+    const hasError = fileDiags.some((d) => d.severity === "error");
+    const hasWarn = !hasError && fileDiags.some((d) => d.severity === "warning");
     return (
       <div
-        className={cx(s.row, active && s.rowActive)}
+        ref={(el) => {
+          if (kind === "file" && el) rowRefs.current.set(o.id, el);
+          else rowRefs.current.delete(o.id);
+        }}
+        className={cx(s.row, active && s.rowActive, reveal && s.rowReveal)}
         style={depthStyle(depth)}
         title={title}
         onClick={() => open(kind, o.id)}
         onContextMenu={(e) => rowMenu(e, kind, o, chatMoveItems(kind, o))}
       >
         <span className={s.rowIcon}>
-          <Icon name={icon ?? KINDS[kind].icon} />
+          {fileName ? <FileIcon filename={fileName} /> : <Icon name={icon ?? KINDS[kind].icon} />}
         </span>
         <span className={s.rowLabel}>{xf.query ? hi(title, fuzzy(xf.query, title)?.idx ?? []) : title}</span>
+        {hasError && (
+          <span className={cx(s.flag, s.flagErr)} title="Errors">
+            <Icon name="warn" />
+          </span>
+        )}
+        {hasWarn && (
+          <span className={cx(s.flag, s.flagWarn)} title="Warnings">
+            <Icon name="warn" />
+          </span>
+        )}
         {o.pinned && (
           <span className={s.flag} title="Pinned">
             <Icon name="pin" />
@@ -217,7 +278,7 @@ export function Explorer() {
           <div>
             {kidDirs.map((cd) => renderDir(cd, depth + 1))}
             {kidFiles.map((f) => (
-              <Leaf key={f.id} kind="file" o={f} depth={depth + 1} icon="file" />
+              <Leaf key={f.id} kind="file" o={f} depth={depth + 1} fileName={f.name} />
             ))}
           </div>
         )}
@@ -331,10 +392,10 @@ export function Explorer() {
           )}
         </Section>
 
-        <Section id="files" label="Files" count={allFiles.filter((f) => !f.dir).length} onAdd={() => newItem("file")}>
+        <Section id="files" label="Files" count={allFiles.filter((f) => !f.dir).length} onAdd={() => pickFiles()}>
           {rootDirs.map((d) => renderDir(d, 1))}
           {rootFiles.map((f) => (
-            <Leaf key={f.id} kind="file" o={f} depth={1} icon="file" />
+            <Leaf key={f.id} kind="file" o={f} depth={1} fileName={f.name} />
           ))}
           {!rootDirs.length && !rootFiles.length && (
             <div className={s.empty} style={depthStyle(1)}>

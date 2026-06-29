@@ -34,12 +34,17 @@ export interface Chat extends BaseItem {
   messages: ChatMessage[];
 }
 
+export type FileEncoding = "text" | "base64";
+
 export interface FileItem extends BaseItem {
   name: string;
   parentId: string | null;
   dir: boolean;
   content: string;
   language: string;
+  encoding?: FileEncoding;
+  mimeType?: string;
+  size?: number;
   expanded?: boolean;
 }
 
@@ -193,6 +198,7 @@ export interface ExplorerState {
   query: string;
   tag: string;
   favOnly: boolean;
+  revealFileId?: string | null;
 }
 
 export interface Session {

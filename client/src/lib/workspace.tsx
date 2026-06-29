@@ -3,8 +3,8 @@
    The React replacement for the original dock.js (shell layout + tabs), the
    ui.js host surfaces (toasts, dialogs, context menu) and app.js (global
    actions + theme). Persisted layout lives in the store's `session`; transient
-   surfaces (toasts, the open menu, the palette) live in local state here.
-   Components consume it through `useWorkspace()`.
+   surfaces (toasts, the open menu, the palette) live in ui-store (Zustand).
+   Components consume shell actions through `useWorkspace()`.
    ========================================================================= */
 "use client";
 import {
@@ -13,16 +13,19 @@ import {
   useContext,
   useEffect,
   useRef,
-  useState,
+  type ChangeEvent,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
 } from "react";
+import { importNativeFiles, createBlankFile } from "./files/file-service";
+import { initEngine } from "./engine";
+import { PANEL_META, tabKey } from "./panels";
 import { ACCENTS, KINDS } from "./store/kinds";
 import { store, useStore } from "./store/store";
 import type { AnyItem, Chat, GroupSnapshot, Kind, Project } from "./store/types";
-import { PANEL_META, tabKey } from "./panels";
+import { useUiStore } from "./ui/ui-store";
 import type { DialogSpec, MenuAnchor, MenuItem, ToastItem, ToastKind } from "./ui-types";
-import { clamp, uid } from "./utils";
+import { clamp } from "./utils";
 
 interface RightPreview {
   node: ReactNode;
@@ -80,6 +83,8 @@ export interface WorkspaceContextValue {
   /* app actions */
   newChat: () => Chat;
   newItem: (kind: Kind) => AnyItem;
+  pickFiles: () => void;
+  revealInExplorer: (fileId: string) => void;
   newProject: () => Promise<Project | undefined>;
   open: (kind: string, id: string) => void;
   openAgent: (id: string) => void;
@@ -103,75 +108,7 @@ const cloneGroups = (): GroupSnapshot[] => {
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const settings = useStore((s) => s.settings);
-
-  /* ---- toasts ---- */
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
-  const dismissToast = useCallback((id: string) => setToasts((t) => t.filter((x) => x.id !== id)), []);
-  const toast = useCallback(
-    (msg: string, kind: ToastKind = "") => {
-      const id = uid();
-      setToasts((t) => [...t, { id, msg, kind }]);
-      setTimeout(() => dismissToast(id), 2600);
-    },
-    [dismissToast],
-  );
-
-  /* ---- dialog ---- */
-  const [dialog, setDialog] = useState<DialogSpec | null>(null);
-  const dialogResolve = useRef<((v: string | boolean | null) => void) | null>(null);
-  const confirm = useCallback(
-    (message: string, opts: { title?: string; okText?: string; danger?: boolean } = {}) =>
-      new Promise<boolean>((resolve) => {
-        dialogResolve.current = (v) => resolve(!!v);
-        setDialog({ title: opts.title ?? "Confirm", message, okText: opts.okText ?? "Confirm", danger: opts.danger });
-      }),
-    [],
-  );
-  const promptDialog = useCallback(
-    (title: string, opts: { value?: string; placeholder?: string; okText?: string } = {}) =>
-      new Promise<string | null>((resolve) => {
-        dialogResolve.current = (v) => resolve(typeof v === "string" ? v : null);
-        setDialog({ title, input: true, value: opts.value ?? "", placeholder: opts.placeholder, okText: opts.okText ?? "OK" });
-      }),
-    [],
-  );
-  const resolveDialog = useCallback((value: string | boolean | null) => {
-    setDialog(null);
-    const r = dialogResolve.current;
-    dialogResolve.current = null;
-    r?.(value);
-  }, []);
-
-  /* ---- context menu ---- */
-  const [menu, setMenu] = useState<{ items: MenuItem[]; anchor: MenuAnchor } | null>(null);
-  const closeMenu = useCallback(() => setMenu(null), []);
-  const openMenu = useCallback((items: MenuItem[], at: ReactMouseEvent | HTMLElement) => {
-    let anchor: MenuAnchor;
-    if (at instanceof HTMLElement) {
-      const r = at.getBoundingClientRect();
-      anchor = { x: r.right, y: r.bottom + 6, alignRight: true };
-    } else {
-      anchor = { x: at.clientX, y: at.clientY, alignRight: false };
-      at.preventDefault();
-    }
-    setMenu({ items: items.filter(Boolean), anchor });
-  }, []);
-
-  /* ---- palette ---- */
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const [palettePrefill, setPalettePrefill] = useState("");
-  const openPalette = useCallback((prefill = "") => {
-    setPalettePrefill(prefill);
-    setPaletteOpen(true);
-  }, []);
-  const closePalette = useCallback(() => setPaletteOpen(false), []);
-
-  /* ---- right preview + single-panel focus ---- */
-  const [rightPreview, setRightPreview] = useState<RightPreview | null>(null);
-  const [focusTaskId, setFocusTaskId] = useState<string | null>(null);
-  const [focusAgentId, setFocusAgentId] = useState<string | null>(null);
-  const [insertRequest, setInsertRequest] = useState<{ text: string; ts: number; chatId: string | null } | null>(null);
-  const clearInsertRequest = useCallback(() => setInsertRequest(null), []);
+  const ui = useUiStore();
 
   /* ---- editor tabs (persisted in session) ---- */
   const openTab = useCallback((panel: string, refId: string | null = null, opts: { focus?: boolean; group?: number } = {}) => {
@@ -234,12 +171,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const splitActive = useCallback(() => {
     const groups = cloneGroups();
     if (groups.length >= 2) {
-      toast("Already split", "info");
+      ui.toast("Already split", "info");
       return;
     }
     groups.push({ active: -1, tabs: [] });
     store.setSession({ groups, activeGroup: 1 });
-  }, [toast]);
+  }, [ui]);
 
   const closeGroup = useCallback((i: number) => {
     const groups = cloneGroups();
@@ -261,19 +198,49 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const openDock = useCallback((id: string) => store.setSession({ dockTab: id, dockOpen: true }), []);
   const toggleDock = useCallback((force?: boolean) => store.setSession({ dockOpen: force ?? !store.session().dockOpen }), []);
   const toggleRight = useCallback((force?: boolean) => store.setSession({ rightOpen: force ?? !store.session().rightOpen }), []);
-  const openRight = useCallback((node: ReactNode, title = "Preview") => {
-    setRightPreview({ node, title });
-    store.setSession({ rightOpen: true });
-  }, []);
-  const clearRight = useCallback(() => setRightPreview(null), []);
+  const openRight = useCallback(
+    (node: ReactNode, title = "Preview") => {
+      ui.openRight(node, title);
+      store.setSession({ rightOpen: true });
+    },
+    [ui],
+  );
+  const clearRight = ui.clearRight;
   const setSideWidth = useCallback((v: number) => store.setSession({ sideWidth: clamp(v, 180, 560) }), []);
   const setRightWidth = useCallback((v: number) => store.setSession({ rightWidth: clamp(v, 260, 720) }), []);
   const setDockHeight = useCallback((v: number) => store.setSession({ dockHeight: clamp(v, 120, window.innerHeight - 220) }), []);
 
+  /* ---- file picker ---- */
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const pickFiles = useCallback(() => fileInputRef.current?.click(), []);
+
+  const handleFileInput = useCallback(
+    async (e: ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (!files?.length) return;
+      const imported = await importNativeFiles(files);
+      if (imported.length) {
+        openTab("file", imported[0].id);
+        ui.toast(imported.length === 1 ? `Added ${imported[0].name}` : `Added ${imported.length} files`, "ok");
+      }
+      e.target.value = "";
+    },
+    [openTab, ui],
+  );
+
+  const revealInExplorer = useCallback((fileId: string) => {
+    const ex = store.session().explorer ?? { groups: {}, query: "", tag: "", favOnly: false };
+    store.setSession({
+      sideView: "explorer",
+      sideOpen: true,
+      explorer: { ...ex, groups: { ...ex.groups, files: true }, revealFileId: fileId },
+    });
+  }, []);
+
   /* ---- app actions ---- */
   const newChat = useCallback((): Chat => {
     const c = store.create("chat", {});
-    store.getState().ui.activeChatId = c.id;
+    store.setActiveChatId(c.id);
     store.saveNow();
     openTab("chat", c.id);
     return c;
@@ -289,41 +256,47 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       if (!meta) return;
       if (meta.single) {
         openTab(kind, null);
-        if (kind === "task") setFocusTaskId(id);
+        if (kind === "task") ui.focusTask(id);
       } else {
         openTab(kind, id);
       }
     },
-    [openTab],
+    [openTab, ui],
   );
 
   const newItem = useCallback(
     (kind: Kind): AnyItem => {
+      if (kind === "file") {
+        const o = createBlankFile();
+        open(kind, o.id);
+        ui.toast("New file", "ok");
+        return o;
+      }
       const o = store.create(kind, {});
       open(kind, o.id);
-      toast("New " + KINDS[kind].label.toLowerCase(), "ok");
+      ui.toast("New " + KINDS[kind].label.toLowerCase(), "ok");
       return o;
     },
-    [open, toast],
+    [open, ui],
   );
 
   const newProject = useCallback(async (): Promise<Project | undefined> => {
-    const name = await promptDialog("New project", { placeholder: "Project name", okText: "Create" });
-    if (name && name.trim()) {
+    const name = await ui.promptDialog("New project", { placeholder: "Project name", okText: "Create" });
+    if (name?.trim()) {
       const p = store.createProject({ name: name.trim() });
       store.setActiveProject(p.id);
-      toast("Project created", "ok");
+      ui.toast("Project created", "ok");
       return p;
     }
     return undefined;
-  }, [promptDialog, toast]);
+  }, [ui]);
 
   const openAgent = useCallback(
     (id: string) => {
       openTab("agents", null);
-      setFocusAgentId(id);
+      ui.setFocusAgentId(id);
     },
-    [openTab],
+    [openTab, ui],
   );
 
   const requestInsert = useCallback(
@@ -334,9 +307,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       } else {
         openTab("chat", cid);
       }
-      setInsertRequest({ text, ts: Date.now(), chatId: cid });
+      ui.setInsertRequest({ text, ts: Date.now(), chatId: cid });
     },
-    [newChat, openTab],
+    [newChat, openTab, ui],
   );
 
   const usePromptItem = useCallback(
@@ -359,6 +332,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     root.style.setProperty("--accent-2", a[1]);
     root.setAttribute("data-motion", settings.reduceMotion ? "reduce" : "full");
   }, [settings.theme, settings.accent, settings.reduceMotion]);
+
+  /* ---- IDE engine (LSP, AST, file watcher, runtime) ---- */
+  useEffect(() => {
+    void initEngine();
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: light)");
@@ -388,15 +366,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       const typing = el ? /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable : false;
       const k = e.key.toLowerCase();
       if (e.key === "Escape") {
-        closeMenu();
+        ui.closeMenu();
         return;
       }
       if (mod && e.shiftKey && k === "p") {
         e.preventDefault();
-        openPalette(">");
+        ui.openPalette(">");
       } else if (mod && (k === "k" || k === "p") && !e.shiftKey) {
         e.preventDefault();
-        openPalette("");
+        ui.openPalette("");
       } else if (mod && e.shiftKey && k === "f") {
         e.preventDefault();
         activateSide("search");
@@ -425,31 +403,31 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [activateSide, closeMenu, newChat, openDock, openPalette, splitActive, toggleDock, toggleRight, toggleSide]);
+  }, [activateSide, newChat, openDock, splitActive, toggleDock, toggleRight, toggleSide, ui]);
 
   const value: WorkspaceContextValue = {
-    toasts,
-    toast,
-    dismissToast,
-    dialog,
-    confirm,
-    promptDialog,
-    resolveDialog,
-    menu,
-    openMenu,
-    closeMenu,
-    paletteOpen,
-    palettePrefill,
-    openPalette,
-    closePalette,
-    rightPreview,
+    toasts: ui.toasts,
+    toast: ui.toast,
+    dismissToast: ui.dismissToast,
+    dialog: ui.dialog,
+    confirm: ui.confirm,
+    promptDialog: ui.promptDialog,
+    resolveDialog: ui.resolveDialog,
+    menu: ui.menu,
+    openMenu: ui.openMenu,
+    closeMenu: ui.closeMenu,
+    paletteOpen: ui.paletteOpen,
+    palettePrefill: ui.palettePrefill,
+    openPalette: ui.openPalette,
+    closePalette: ui.closePalette,
+    rightPreview: ui.rightPreview,
     openRight,
     clearRight,
-    focusTaskId,
-    focusTask: setFocusTaskId,
-    focusAgentId,
-    insertRequest,
-    clearInsertRequest,
+    focusTaskId: ui.focusTaskId,
+    focusTask: ui.focusTask,
+    focusAgentId: ui.focusAgentId,
+    insertRequest: ui.insertRequest,
+    clearInsertRequest: ui.clearInsertRequest,
     openTab,
     closeTab,
     closeOthers,
@@ -467,6 +445,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setDockHeight,
     newChat,
     newItem,
+    pickFiles,
+    revealInExplorer,
     newProject,
     open,
     openAgent,
@@ -474,5 +454,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     requestInsert,
   };
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={value}>
+      <input ref={fileInputRef} type="file" multiple hidden aria-hidden onChange={handleFileInput} />
+      {children}
+    </Ctx.Provider>
+  );
 }

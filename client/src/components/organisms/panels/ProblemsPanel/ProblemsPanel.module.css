@@ -1,0 +1,10 @@
+.root { height: 100%; overflow: auto; font-family: var(--mono); font-size: 12px; }
+.empty { height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 12.5px; }
+.row { width: 100%; display: grid; grid-template-columns: 20px 140px 100px 1fr 60px; gap: 10px; align-items: center; padding: 6px 12px; border: none; border-bottom: 1px solid var(--border); background: transparent; color: var(--text-dim); text-align: left; cursor: pointer; }
+.row:hover { background: var(--hover); color: var(--text); }
+.err { color: var(--danger, #e55); }
+.warn { color: var(--warn, #da3); }
+.file { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.loc { color: var(--text-faint); }
+.msg { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.src { color: var(--text-faint); text-transform: uppercase; font-size: 10px; }

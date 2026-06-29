@@ -11,6 +11,7 @@ import { OverviewPanel } from "./OverviewPanel/OverviewPanel";
 import { PromptsPanel } from "./PromptsPanel/PromptsPanel";
 import { SettingsPanel } from "./SettingsPanel/SettingsPanel";
 import { TasksPanel } from "./TasksPanel/TasksPanel";
+import { ProblemsPanel } from "./ProblemsPanel/ProblemsPanel";
 import { TerminalPanel } from "./TerminalPanel/TerminalPanel";
 
 export function renderPanel(panel: string, refId: string | null): ReactNode {
@@ -42,6 +43,8 @@ export function renderDockPanel(panel: string): ReactNode {
   switch (panel) {
     case "terminal":
       return <TerminalPanel />;
+    case "problems":
+      return <ProblemsPanel />;
     case "git":
       return <GitPanel />;
     default:
