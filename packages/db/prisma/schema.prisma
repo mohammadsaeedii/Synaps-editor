@@ -1,0 +1,417 @@
+// Synapse — PostgreSQL schema (system of record)
+// Extensions: pg_trgm, vector (pgvector) — enable via migration SQL
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pg_trgm, vector]
+}
+
+// ─── Identity & Workspace ───────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  email         String    @unique
+  name          String?
+  emailVerified DateTime? @map("email_verified")
+  image         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  accounts      Account[]
+  sessions      Session[]
+  settings      UserSettings?
+  workspaces    WorkspaceMember[]
+  projects      Project[]
+  apiKeys       EncryptedApiKey[]
+  tokenUsage    TokenUsageLog[]
+  activities    Activity[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(uuid()) @db.Uuid
+  userId            String  @map("user_id") @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id") @db.Uuid
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model UserSettings {
+  userId        String  @id @map("user_id") @db.Uuid
+  theme         String  @default("dark")
+  accent        String  @default("violet")
+  density       String  @default("comfortable")
+  defaultModel  String  @default("claude-opus-4-8") @map("default_model")
+  systemPrompt  String  @default("") @map("system_prompt") @db.Text
+  reduceMotion  Boolean @default(false) @map("reduce_motion")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+model EncryptedApiKey {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  provider  String   @default("anthropic")
+  keyCiphertext Bytes @map("key_ciphertext")
+  keyIv     Bytes    @map("key_iv")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@map("encrypted_api_keys")
+}
+
+// Future org support
+model Workspace {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  members  WorkspaceMember[]
+  projects Project[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  workspaceId String   @map("workspace_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  role        String   @default("member") // owner | admin | member
+  joinedAt    DateTime @default(now()) @map("joined_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+// ─── Projects & File Tree ───────────────────────────────────────────────
+
+model Project {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  workspaceId String?  @map("workspace_id") @db.Uuid
+  name        String
+  color       String
+  icon        String   @default("project")
+  description String   @default("") @db.Text
+  pinned      Boolean  @default(false)
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+  folders   Folder[]
+  files     File[]
+  chats     Chat[]
+  notes     Note[]
+  tasks     Task[]
+  prompts   Prompt[]
+  memories  Memory[]
+  agents    Agent[]
+  activities Activity[]
+
+  @@index([userId, deletedAt])
+  @@index([workspaceId])
+  @@map("projects")
+}
+
+model Folder {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  parentId  String?  @map("parent_id") @db.Uuid
+  name      String
+  expanded  Boolean  @default(true)
+  sortOrder Int      @default(0) @map("sort_order")
+
+  project Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent  Folder?  @relation("FolderTree", fields: [parentId], references: [id])
+  children Folder[] @relation("FolderTree")
+  chats   Chat[]
+
+  @@index([projectId])
+  @@index([parentId])
+  @@map("folders")
+}
+
+model File {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  parentId  String?  @map("parent_id") @db.Uuid
+  name      String
+  isDir     Boolean  @default(false) @map("is_dir")
+  content   String   @default("") @db.Text
+  language  String   @default("plaintext")
+  encoding  String   @default("text")
+  mimeType  String?  @map("mime_type")
+  size      Int?
+  pinned    Boolean  @default(false)
+  favorite  Boolean  @default(false)
+  tags      String[] @default([])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // FTS — maintained by trigger or application layer
+  searchVector Unsupported("tsvector")? @map("search_vector")
+
+  // Future RAG
+  embedding Unsupported("vector(1536)")?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent  File?   @relation("FileTree", fields: [parentId], references: [id])
+  children File[] @relation("FileTree")
+
+  @@index([projectId, deletedAt])
+  @@index([parentId])
+  @@map("files")
+}
+
+// ─── Chat & Messages ────────────────────────────────────────────────────
+
+model Chat {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  folderId  String?  @map("folder_id") @db.Uuid
+  title     String
+  archived  Boolean  @default(false)
+  system    String   @default("") @db.Text
+  persona   String   @default("") @db.Text
+  model     String   @default("")
+  pinned    Boolean  @default(false)
+  favorite  Boolean  @default(false)
+  tags      String[] @default([])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  searchVector Unsupported("tsvector")? @map("search_vector")
+
+  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  folder   Folder?   @relation(fields: [folderId], references: [id])
+  messages Message[]
+
+  @@index([projectId, deletedAt])
+  @@index([folderId])
+  @@map("chats")
+}
+
+model Message {
+  id        String   @id @default(uuid()) @db.Uuid
+  chatId    String   @map("chat_id") @db.Uuid
+  role      String   // user | assistant
+  text      String   @db.Text
+  isMeta    Boolean  @default(false) @map("is_meta")
+  ts        DateTime @default(now())
+  tokenCount Int?    @map("token_count")
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId, ts])
+  @@map("messages")
+}
+
+// ─── Tasks, Notes, Prompts, Memory ──────────────────────────────────────
+
+model Task {
+  id        String    @id @default(uuid()) @db.Uuid
+  projectId String    @map("project_id") @db.Uuid
+  title     String
+  status    String    @default("todo") // todo | doing | done
+  priority  String    @default("med")  // low | med | high
+  due       DateTime?
+  notes     String    @default("") @db.Text
+  sortOrder Int       @default(0) @map("sort_order")
+  pinned    Boolean   @default(false)
+  favorite  Boolean   @default(false)
+  tags      String[]  @default([])
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  searchVector Unsupported("tsvector")? @map("search_vector")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, status, deletedAt])
+  @@map("tasks")
+}
+
+model Note {
+  id        String    @id @default(uuid()) @db.Uuid
+  projectId String    @map("project_id") @db.Uuid
+  title     String
+  content   String    @default("") @db.Text
+  pinned    Boolean   @default(false)
+  favorite  Boolean   @default(false)
+  tags      String[]  @default([])
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  searchVector Unsupported("tsvector")? @map("search_vector")
+  embedding    Unsupported("vector(1536)")?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, deletedAt])
+  @@map("notes")
+}
+
+model Prompt {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  title     String
+  body      String   @db.Text
+  uses      Int      @default(0)
+  pinned    Boolean  @default(false)
+  favorite  Boolean  @default(false)
+  tags      String[] @default([])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("prompts")
+}
+
+model Memory {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  title     String
+  body      String   @db.Text
+  scope     String   @default("project") // project | global
+  pinned    Boolean  @default(false)
+  favorite  Boolean  @default(false)
+  tags      String[] @default([])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  embedding Unsupported("vector(1536)")?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("memories")
+}
+
+// ─── Agents ─────────────────────────────────────────────────────────────
+
+model Agent {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  name      String
+  role      String
+  model     String
+  status    String   @default("idle")
+  system    String   @default("") @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  project Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  runs    AgentRun[]
+
+  @@index([projectId])
+  @@map("agents")
+}
+
+model AgentRun {
+  id        String   @id @default(uuid()) @db.Uuid
+  agentId   String   @map("agent_id") @db.Uuid
+  goal      String   @db.Text
+  status    String   @default("idle")
+  log       Json     @default("[]")
+  startedAt DateTime @default(now()) @map("started_at")
+  endedAt   DateTime? @map("ended_at")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, startedAt])
+  @@map("agent_runs")
+}
+
+// ─── Activity & Observability ───────────────────────────────────────────
+
+model Activity {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  projectId String?  @map("project_id") @db.Uuid
+  action    String
+  kind      String
+  refId     String   @map("ref_id") @db.Uuid
+  title     String
+  ts        DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id])
+
+  @@index([userId, ts(sort: Desc)])
+  @@index([projectId, ts(sort: Desc)])
+  @@map("activities")
+}
+
+model TokenUsageLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  chatId       String?  @map("chat_id") @db.Uuid
+  agentRunId   String?  @map("agent_run_id") @db.Uuid
+  model        String
+  inputTokens  Int      @map("input_tokens")
+  outputTokens Int      @map("output_tokens")
+  costUsd      Decimal? @map("cost_usd") @db.Decimal(10, 6)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("token_usage_logs")
+}
+
+// ─── Sync state (localStorage migration) ────────────────────────────────
+
+model SyncCheckpoint {
+  userId    String   @id @map("user_id") @db.Uuid
+  revision  BigInt   @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("sync_checkpoints")
+}
