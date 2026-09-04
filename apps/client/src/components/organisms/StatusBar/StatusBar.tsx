@@ -2,7 +2,14 @@
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { Icon } from "@/design/icons";
 import { StatusItem } from "@/components/molecules/StatusItem/StatusItem";
-import { isLive, statusText } from "@/lib/ai";
+import { useHealthQuery } from "@/lib/api";
+import {
+  isLive,
+  modelDisplayLabel,
+  modelPickerGroups,
+  resolveProviderForModel,
+  statusText,
+} from "@/lib/ai";
 import { diagnosticsService } from "@/lib/engine";
 import { useEngineEvent, useRuntimeState } from "@/lib/engine/hooks";
 import { PROJECT_COLORS } from "@/lib/store/kinds";
@@ -11,16 +18,6 @@ import type { MenuItem } from "@/lib/ui-types";
 import { cx } from "@/lib/utils";
 import { useWorkspace } from "@/lib/workspace";
 import s from "./StatusBar.module.css";
-
-function modelShort(m: string): string {
-  return (m || "")
-    .replace("claude-", "")
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-    .replace("Opus 4 8", "Opus 4.8")
-    .replace("Sonnet 4 6", "Sonnet 4.6")
-    .replace("Haiku 4 5", "Haiku 4.5");
-}
 
 function runtimeLabel(state: string): string {
   switch (state) {
@@ -43,9 +40,12 @@ export function StatusBar() {
   const branch = g?.branch || "main";
   const dirty = (g?.working || []).length;
   const live = isLive();
+  const health = useHealthQuery();
+  const backendOk = health.isSuccess;
   const runtimeState = useRuntimeState(p?.id);
   const diag = p ? diagnosticsService.getSummary(p.id) : null;
   const problemCount = (diag?.errorCount ?? 0) + (diag?.warningCount ?? 0);
+  const settings = store.settings();
 
   const projMenu = (e: ReactMouseEvent<HTMLButtonElement>) => {
     const items: MenuItem[] = store.projects().map((pr) => ({
@@ -53,6 +53,27 @@ export function StatusBar() {
       check: pr.id === p?.id,
       onClick: () => store.setActiveProject(pr.id),
     }));
+    openMenu(items, e.currentTarget);
+  };
+
+  const modelMenu = (e: ReactMouseEvent<HTMLButtonElement>) => {
+    const items: MenuItem[] = [];
+    for (const { provider, models } of modelPickerGroups()) {
+      items.push({ head: provider.label });
+      for (const m of models) {
+        items.push({
+          label: m.label,
+          check: settings.model === m.id,
+          onClick: () =>
+            store.setSetting({
+              model: m.id,
+              provider: resolveProviderForModel(m.id),
+            }),
+        });
+      }
+      items.push({ sep: true });
+    }
+    if (items.length && items[items.length - 1].sep) items.pop();
     openMenu(items, e.currentTarget);
   };
 
@@ -85,13 +106,21 @@ export function StatusBar() {
         )}
       </StatusItem>
       <div className={s.spacer} />
-      <StatusItem className={cx(live ? s.live : s.mock)} title="AI engine — open Settings" onClick={() => openTab("settings", null)}>
+      <StatusItem
+        className={cx(live && backendOk ? s.live : s.mock)}
+        title={
+          backendOk
+            ? "AI engine — open Settings"
+            : "Backend offline — start Nest on port 3001"
+        }
+        onClick={() => openTab("settings", null)}
+      >
         <span className={s.statusdot} />
-        <span>{statusText()}</span>
+        <span>{backendOk ? statusText() : "API offline"}</span>
       </StatusItem>
-      <StatusItem title="Model" onClick={() => openTab("settings", null)}>
+      <StatusItem title="Switch model" onClick={modelMenu}>
         <Icon name="cpu" />
-        <span>{modelShort(store.settings().model)}</span>
+        <span>{modelDisplayLabel(settings.model)}</span>
       </StatusItem>
       <StatusItem title="Command palette" onClick={() => openPalette("")}>
         <Icon name="command" />

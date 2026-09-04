@@ -7,7 +7,14 @@ import { Toggle } from "@/components/atoms/Toggle/Toggle";
 import { Field } from "@/components/molecules/Field/Field";
 import { Segmented } from "@/components/molecules/Segmented/Segmented";
 import { Icon } from "@/design/icons";
-import { isLive, statusText } from "@/lib/ai";
+import { useHealthQuery } from "@/lib/api";
+import {
+  AI_PROVIDERS,
+  isLive,
+  modelPickerGroups,
+  resolveProviderForModel,
+  statusText,
+} from "@/lib/ai";
 import { ACCENTS, KINDS } from "@/lib/store/kinds";
 import { store, useStoreVersion } from "@/lib/store/store";
 import type { Kind, ThemeMode } from "@/lib/store/types";
@@ -20,7 +27,19 @@ export function SettingsPanel() {
   const { toast, confirm } = useWorkspace();
   const set = store.settings();
   const live = isLive();
+  const health = useHealthQuery();
   const total = (Object.keys(KINDS) as Kind[]).reduce((n, k) => n + store.list(k).length, 0);
+
+  const backendLabel = health.isLoading
+    ? "Checking backend…"
+    : health.isError
+      ? "Backend unreachable — start the Nest server (port 3001)."
+      : (() => {
+          const configured = (health.data?.providers || []).filter((p) => p.configured).map((p) => p.label);
+          if (configured.length)
+            return `Backend online · server keys: ${configured.join(", ")}`;
+          return "Backend online · add provider keys in Settings (or server env)";
+        })();
 
   return (
     <div className={s.root}>
@@ -105,16 +124,51 @@ export function SettingsPanel() {
               <span className={cx(s.status, live ? s.statusLive : s.statusMock)} />
               <span className={s.statusText}>{statusText()}</span>
             </div>
-            <Field label="Model">
-              <Select value={set.model} onChange={(e) => store.setSetting({ model: e.target.value })}>
-                <option value="claude-opus-4-8">Claude Opus 4.8</option>
-                <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
-                <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
+            <p className={s.hint}>{backendLabel}</p>
+            <Field label="Default model">
+              <Select
+                value={set.model}
+                onChange={(e) => {
+                  const model = e.target.value;
+                  store.setSetting({
+                    model,
+                    provider: resolveProviderForModel(model),
+                  });
+                }}
+              >
+                {modelPickerGroups().map(({ provider, models }) => (
+                  <optgroup key={provider.id} label={provider.label}>
+                    {models.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
               </Select>
             </Field>
-            <Field label="Claude API key" hint="Stored only in this browser; sent directly to api.anthropic.com.">
-              <Input type="password" placeholder="sk-ant-…" value={set.apiKey} onChange={(e) => store.setSetting({ apiKey: e.target.value })} />
-            </Field>
+            {AI_PROVIDERS.map((p) => (
+              <Field
+                key={p.id}
+                label={`${p.label} API key`}
+                hint={
+                  p.id === "anthropic"
+                    ? "Stored in this browser; sent only to your synapse backend for the selected provider."
+                    : undefined
+                }
+              >
+                <Input
+                  type="password"
+                  placeholder={p.placeholder}
+                  value={set.apiKeys?.[p.id] || (p.id === "anthropic" ? set.apiKey : "")}
+                  onChange={(e) =>
+                    store.setSetting({
+                      apiKeys: { ...set.apiKeys, [p.id]: e.target.value },
+                    })
+                  }
+                />
+              </Field>
+            ))}
             <Field label="System prompt (optional)">
               <Textarea rows={3} placeholder="You are a helpful assistant…" value={set.systemPrompt} onChange={(e) => store.setSetting({ systemPrompt: e.target.value })} />
             </Field>
@@ -127,7 +181,8 @@ export function SettingsPanel() {
           </h3>
           <div className={s.body}>
             <p className={s.hint}>
-              {total} items across {store.projects().length} projects, saved in this browser&apos;s localStorage.
+              {total} items across {store.projects().length} projects. Durable copy lives in the
+              Nest/Prisma database; this browser keeps a local cache for offline use.
             </p>
             <div className={s.row}>
               <div className={s.rowLabel}>

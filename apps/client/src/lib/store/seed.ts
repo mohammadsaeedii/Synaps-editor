@@ -6,6 +6,7 @@
    original store.js seed so the Next.js app boots with identical content.
    ========================================================================= */
 import { uid } from "../utils";
+import { emptyApiKeys } from "../ai/catalog";
 import { ACCENTS } from "./kinds";
 import type {
   Activity,
@@ -29,7 +30,9 @@ export function defaultSettings(): Settings {
     name: "Navid",
     plan: "Pro plan",
     model: "claude-opus-4-8",
+    provider: "anthropic",
     apiKey: "",
+    apiKeys: emptyApiKeys(),
     systemPrompt: "",
     reduceMotion: false,
   };

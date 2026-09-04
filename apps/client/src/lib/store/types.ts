@@ -110,14 +110,26 @@ export interface Folder {
 
 export type ThemeMode = "dark" | "light" | "system";
 
+export type AiProviderId = "anthropic" | "openai" | "google";
+
+export type ProviderApiKeys = Record<AiProviderId, string>;
+
 export interface Settings {
   theme: ThemeMode;
   accent: string;
   density: string;
   name: string;
   plan: string;
+  /** Active workspace model id (any provider). */
   model: string;
+  /** Preferred provider when picking defaults — derived from model if unset. */
+  provider: AiProviderId;
+  /**
+   * @deprecated Prefer `apiKeys.anthropic`. Kept for older localStorage snapshots.
+   */
   apiKey: string;
+  /** Per-provider API keys (browser-local; never synced to DB). */
+  apiKeys: ProviderApiKeys;
   systemPrompt: string;
   reduceMotion: boolean;
 }

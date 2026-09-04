@@ -5,7 +5,8 @@ import { Typing } from "@/components/atoms/Typing/Typing";
 import { EmptyState } from "@/components/molecules/EmptyState/EmptyState";
 import { PanelHeader } from "@/components/molecules/PanelHeader/PanelHeader";
 import { Icon, type IconName } from "@/design/icons";
-import { apiHistory, isLive, runAI, statusText } from "@/lib/ai";
+import { apiHistory, isLive, modelDisplayLabel, modelPickerGroups } from "@/lib/ai";
+import { useRunAIMutation } from "@/lib/api";
 import { md as renderMarkdown } from "@/lib/markdown";
 import { useItemActions } from "@/lib/item-actions";
 import { store, useStoreVersion } from "@/lib/store/store";
@@ -14,13 +15,6 @@ import type { MenuItem } from "@/lib/ui-types";
 import { copyText, cx, deriveTitle } from "@/lib/utils";
 import { useWorkspace } from "@/lib/workspace";
 import s from "./ChatPanel.module.css";
-
-const MODELS: [string, string][] = [
-  ["", "Workspace default"],
-  ["claude-opus-4-8", "Claude Opus 4.8"],
-  ["claude-sonnet-4-6", "Claude Sonnet 4.6"],
-  ["claude-haiku-4-5", "Claude Haiku 4.5"],
-];
 
 const QUICK: { label: string; text: string; icon: IconName }[] = [
   { label: "Summarize", text: "Summarize this for me:\n\n", icon: "book" },
@@ -33,6 +27,7 @@ export function ChatPanel({ chatId }: { chatId: string }) {
   useStoreVersion();
   const { toast, openMenu, requestInsert, insertRequest, clearInsertRequest, newItem } = useWorkspace();
   const { itemMenuItems } = useItemActions();
+  const runAIMutation = useRunAIMutation();
   const [draft, setDraft] = useState("");
   const [streaming, setStreaming] = useState<{ text: string } | null>(null);
   const ctrlRef = useRef<AbortController | null>(null);
@@ -81,7 +76,8 @@ export function ChatPanel({ chatId }: { chatId: string }) {
     setStreaming({ text: "" });
     let acc = "";
     try {
-      await runAI(apiHistory(c.messages), {
+      await runAIMutation.mutateAsync({
+        history: apiHistory(c.messages),
         system: c.system || store.settings().systemPrompt || undefined,
         model: c.model || undefined,
         signal: ctrl.signal,
@@ -145,12 +141,28 @@ export function ChatPanel({ chatId }: { chatId: string }) {
   }
 
   const setModel = (e: ReactMouseEvent<HTMLButtonElement>) => {
-    openMenu(
-      MODELS.map(([v, l]) => ({ label: l, check: conv!.model === v, onClick: () => store.update("chat", chatId, { model: v }) })),
-      e.currentTarget,
-    );
+    const items: MenuItem[] = [
+      {
+        label: "Workspace default",
+        check: !conv!.model,
+        onClick: () => store.update("chat", chatId, { model: "" }),
+      },
+      { sep: true },
+    ];
+    for (const { provider, models } of modelPickerGroups()) {
+      items.push({ head: provider.label });
+      for (const m of models) {
+        items.push({
+          label: m.label,
+          hint: provider.label,
+          check: conv!.model === m.id,
+          onClick: () => store.update("chat", chatId, { model: m.id }),
+        });
+      }
+    }
+    openMenu(items, e.currentTarget);
   };
-  const modelLabel = MODELS.find((x) => x[0] === conv.model)?.[1] || "Default";
+  const modelLabel = modelDisplayLabel(conv.model || store.settings().model);
 
   const promptMenu = (e: ReactMouseEvent<HTMLButtonElement>) => {
     const ps = store.byProject("prompt", conv.projectId);
@@ -201,7 +213,7 @@ export function ChatPanel({ chatId }: { chatId: string }) {
                   <Icon name="sparkle" size={40} />
                 </div>
                 <h2>Start the conversation</h2>
-                <p>{isLive() ? "Connected to the Claude API." : "Offline demo mode — answers are simulated."}</p>
+                <p>{isLive() ? "Connected via the synapse API." : "Offline demo mode — answers are simulated."}</p>
                 <div className={s.chips}>
                   {quick.map((q) => (
                     <button key={q.label} type="button" className={s.chip} onClick={() => { setDraft(q.text); setTimeout(() => taRef.current?.focus(), 0); }}>
@@ -255,7 +267,7 @@ export function ChatPanel({ chatId }: { chatId: string }) {
             <Icon name={ctrlRef.current ? "stop" : "send"} size={18} />
           </button>
         </div>
-        <p className={s.hint}>{statusText() === "Live · Claude API" ? "Connected to Claude." : "Offline demo — add a Claude key in Settings for real answers."}</p>
+        <p className={s.hint}>{isLive() ? "Connected via synapse API." : "Offline demo — add a Claude key in Settings for real answers."}</p>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
    synapse · store — persistence
    localStorage hydration + merge for the v2 workspace tree.
    ========================================================================= */
+import { emptyApiKeys, resolveProviderForModel } from "../ai/catalog";
 import type { AppState } from "./types";
 import { blank, defaultSettings, seed } from "./seed";
 
@@ -46,7 +47,7 @@ export const disk = {
 };
 
 export function mergeHydratedState(saved: AppState): AppState {
-  saved.settings = Object.assign(defaultSettings(), saved.settings);
+  saved.settings = normalizeSettings(saved.settings);
   saved.session = Object.assign(blank().session, saved.session);
   saved.activity = saved.activity || [];
   Object.keys(saved.projects).forEach((id) => {
@@ -55,6 +56,22 @@ export function mergeHydratedState(saved: AppState): AppState {
   });
   if (!saved.projects[saved.ui.activeProjectId ?? ""]) saved.ui.activeProjectId = saved.projectOrder[0] ?? null;
   return saved;
+}
+
+function normalizeSettings(partial: AppState["settings"] | undefined): AppState["settings"] {
+  const base = defaultSettings();
+  const merged = Object.assign(base, partial);
+  const keys = { ...emptyApiKeys(), ...(partial?.apiKeys || {}) };
+  // Migrate legacy single apiKey → anthropic slot
+  if ((!keys.anthropic || !keys.anthropic.trim()) && merged.apiKey?.trim()) {
+    keys.anthropic = merged.apiKey.trim();
+  }
+  merged.apiKeys = keys;
+  merged.apiKey = keys.anthropic || "";
+  if (!merged.provider) {
+    merged.provider = resolveProviderForModel(merged.model);
+  }
+  return merged;
 }
 
 export function loadInitialState(): AppState {

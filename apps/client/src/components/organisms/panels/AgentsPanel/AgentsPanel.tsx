@@ -5,7 +5,7 @@ import { Input } from "@/components/atoms/Input/Input";
 import { EmptyState } from "@/components/molecules/EmptyState/EmptyState";
 import { PanelHeader } from "@/components/molecules/PanelHeader/PanelHeader";
 import { Icon } from "@/design/icons";
-import { runAI } from "@/lib/ai";
+import { useRunAIMutation } from "@/lib/api";
 import { store, useStoreVersion } from "@/lib/store/store";
 import type { Agent, AgentRun } from "@/lib/store/types";
 import { cx, fmtRelative, uid } from "@/lib/utils";
@@ -61,6 +61,7 @@ export function AgentsSide() {
 export function AgentsConsole() {
   useStoreVersion();
   const { focusAgentId } = useWorkspace();
+  const runAIMutation = useRunAIMutation();
   const p = store.activeProject();
   const agents = Object.values(store.getState().agents).filter((a) => a.projectId === p?.id);
   const agent = (focusAgentId ? store.getState().agents[focusAgentId] : null) ?? agents[0];
@@ -85,7 +86,8 @@ export function AgentsConsole() {
     ctrlRef.current = ctrl;
     let acc = "";
     try {
-      await runAI([{ role: "user", content: g }], {
+      await runAIMutation.mutateAsync({
+        history: [{ role: "user", content: g }],
         system: agent.system || `You are ${agent.name}. ${agent.role}.`,
         model: agent.model,
         signal: ctrl.signal,

@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Singleton row (id = 1) holding workspace chrome + derived maps.
+model WorkspaceMeta {
+  id           Int      @id @default(1)
+  version      Int      @default(2)
+  ui           Json
+  session      Json
+  /// Settings without apiKey (secret stays client-local).
+  settings     Json
+  projectOrder Json
+  git          Json
+  terminals    Json
+  activity     Json
+  updatedAt    DateTime @updatedAt
+}
+
+model Project {
+  id          String  @id
+  name        String
+  color       String
+  icon        String  @default("project")
+  description String  @default("")
+  pinned      Boolean @default(false)
+  sortOrder   Int     @default(0)
+  createdAt   BigInt
+  updatedAt   BigInt
+
+  files   WorkspaceFile[]
+  chats   Chat[]
+  notes   Note[]
+  tasks   Task[]
+  prompts Prompt[]
+  memories Memory[]
+  folders ChatFolder[]
+  agents  Agent[]
+}
+
+model WorkspaceFile {
+  id        String  @id
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  parentId  String?
+  dir       Boolean @default(false)
+  content   String  @default("")
+  language  String  @default("plaintext")
+  encoding  String  @default("text")
+  mimeType  String?
+  size      Int?
+  expanded  Boolean @default(false)
+  pinned    Boolean @default(false)
+  favorite  Boolean @default(false)
+  tags      Json    @default("[]")
+  createdAt BigInt
+  updatedAt BigInt
+
+  @@index([projectId])
+  @@index([parentId])
+}
+
+model ChatFolder {
+  id        String  @id
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  parentId  String?
+  expanded  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  @@index([projectId])
+}
+
+model Chat {
+  id        String  @id
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  folderId  String?
+  archived  Boolean @default(false)
+  system    String  @default("")
+  persona   String  @default("")
+  model     String  @default("")
+  pinned    Boolean @default(false)
+  favorite  Boolean @default(false)
+  tags      Json    @default("[]")
+  createdAt BigInt
+  updatedAt BigInt
+  messages  ChatMessage[]
+
+  @@index([projectId])
+}
+
+model ChatMessage {
+  id        String  @id
+  chatId    String
+  chat      Chat    @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  role      String
+  text      String
+  ts        BigInt
+  meta      Boolean @default(false)
+  sortOrder Int     @default(0)
+
+  @@index([chatId])
+}
+
+model Note {
+  id        String  @id
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  content   String  @default("")
+  pinned    Boolean @default(false)
+  favorite  Boolean @default(false)
+  tags      Json    @default("[]")
+  createdAt BigInt
+  updatedAt BigInt
+
+  @@index([projectId])
+}
+
+model Task {
+  id        String  @id
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  status    String  @default("todo")
+  priority  String  @default("med")
+  due       BigInt?
+  notes     String  @default("")
+  sortOrder Int     @default(0)
+  pinned    Boolean @default(false)
+  favorite  Boolean @default(false)
+  tags      Json    @default("[]")
+  createdAt BigInt
+  updatedAt BigInt
+
+  @@index([projectId])
+}
+
+model Prompt {
+  id        String  @id
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  body      String  @default("")
+  uses      Int     @default(0)
+  pinned    Boolean @default(false)
+  favorite  Boolean @default(false)
+  tags      Json    @default("[]")
+  createdAt BigInt
+  updatedAt BigInt
+
+  @@index([projectId])
+}
+
+model Memory {
+  id        String  @id
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  body      String  @default("")
+  scope     String  @default("project")
+  pinned    Boolean @default(false)
+  favorite  Boolean @default(false)
+  tags      Json    @default("[]")
+  createdAt BigInt
+  updatedAt BigInt
+
+  @@index([projectId])
+}
+
+model Agent {
+  id        String  @id
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  role      String  @default("")
+  model     String  @default("")
+  status    String  @default("idle")
+  system    String  @default("")
+  createdAt BigInt
+  runs      Json    @default("[]")
+
+  @@index([projectId])
+}

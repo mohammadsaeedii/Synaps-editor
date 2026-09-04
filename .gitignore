@@ -20,7 +20,14 @@ yarn-error.log*
 pnpm-debug.log*
 
 # env
+.env
 .env*.local
+
+# database
+apps/server/data/*.db
+apps/server/data/*.db-journal
+*.db
+*.db-journal
 
 # typescript
 *.tsbuildinfo

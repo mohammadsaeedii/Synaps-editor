@@ -6,12 +6,13 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
+import { resolveProviderForModel } from "../ai/catalog";
 import { uid } from "../utils";
 import { KINDS, PROJECT_COLORS } from "./kinds";
-import { disk, loadInitialState, pickPersistedState, STORAGE_KEY } from "./persistence";
+import { disk, loadInitialState, mergeHydratedState, pickPersistedState, STORAGE_KEY } from "./persistence";
 import * as sel from "./selectors";
 import { itemCollection, logActivity, newItemDefaults, touch } from "./slices/helpers";
-import { blank, defaultSettings, seed } from "./seed";
+import { blank, seed } from "./seed";
 import type {
   AnyItem,
   AppState,
@@ -59,6 +60,8 @@ export interface AppStoreActions {
   logActivity(action: string, kind: string, obj: AnyItem | Project | null): void;
   flush(): void;
   saveNow(): void;
+  /** Replace domain state from a server snapshot (keeps ephemeral `_rev`). */
+  hydrate(snapshot: AppState): void;
 }
 
 export type AppStore = AppState & { _rev: number } & AppStoreActions;
@@ -85,6 +88,15 @@ export const useAppStore = create<AppStore>()(
       saveNow: () => {
         const { _rev: _, ...data } = get();
         disk.set(STORAGE_KEY, pickPersistedState(data));
+      },
+
+      hydrate: (snapshot) => {
+        set((draft) => {
+          const merged = mergeHydrated({ ...snapshot });
+          Object.assign(draft, merged);
+          draft._rev += 1;
+        });
+        get().saveNow();
       },
 
       get: (kind, id) => sel.getItem(get(), kind, id) as KindItemMap[typeof kind] | null,
@@ -320,7 +332,24 @@ export const useAppStore = create<AppStore>()(
       },
 
       setSetting: (patch) => {
-        mutate((draft) => { Object.assign(draft.settings, patch); });
+        mutate((draft) => {
+          Object.assign(draft.settings, patch);
+          if (patch.apiKeys) {
+            draft.settings.apiKeys = {
+              ...draft.settings.apiKeys,
+              ...patch.apiKeys,
+            };
+            draft.settings.apiKey = draft.settings.apiKeys.anthropic || "";
+          } else if (typeof patch.apiKey === "string") {
+            draft.settings.apiKeys = {
+              ...draft.settings.apiKeys,
+              anthropic: patch.apiKey,
+            };
+          }
+          if (patch.model && !patch.provider) {
+            draft.settings.provider = resolveProviderForModel(patch.model);
+          }
+        });
         get().saveNow();
       },
 
@@ -362,15 +391,7 @@ export const useAppStore = create<AppStore>()(
 );
 
 function mergeHydrated(saved: AppState): AppState {
-  saved.settings = Object.assign(defaultSettings(), saved.settings);
-  saved.session = Object.assign(blank().session, saved.session);
-  saved.activity = saved.activity || [];
-  Object.keys(saved.projects).forEach((id) => {
-    if (!saved.git[id]) saved.git[id] = { branch: "main", branches: [{ name: "main", head: null }], commits: [], working: [] };
-    if (!saved.terminals[id]) saved.terminals[id] = { cwd: "/", history: [] };
-  });
-  if (!saved.projects[saved.ui.activeProjectId ?? ""]) saved.ui.activeProjectId = saved.projectOrder[0] ?? null;
-  return saved;
+  return mergeHydratedState(saved);
 }
 
 /* Re-export selectors for external use */
