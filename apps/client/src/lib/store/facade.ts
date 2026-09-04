@@ -79,11 +79,10 @@ export const store = {
   activeProject: (): Project | null => sel.activeProject(s()),
   setActiveProject: (id: string) => {
     s().setActiveProject(id);
-    scheduleWorkspaceSync(1200);
+    // ui-only; folded into next domain sync — avoid boot PUT storms
   },
   setActiveChatId: (id: string | null) => {
     s().setActiveChatId(id);
-    scheduleWorkspaceSync(1200);
   },
   ensureProject: (id: string) => s().ensureProject(id),
   createProject: (props?: { name?: string; color?: string; description?: string }) => {
@@ -150,8 +149,8 @@ export const store = {
   },
   session: (): Session => s().session,
   setSession: (patch: Partial<Session>) => {
+    // Layout chrome stays localStorage-first; next domain save persists session.
     s().setSession(patch);
-    scheduleWorkspaceSync(1500);
   },
   exportAll: () => s().exportAll(),
   reset: () => {

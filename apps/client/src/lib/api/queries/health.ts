@@ -5,6 +5,7 @@ import { queryKeys } from "../query-keys";
 export const healthQueryOptions = queryOptions({
   queryKey: queryKeys.health.root,
   queryFn: ({ signal }) => healthService.getHealth(signal),
-  staleTime: 15_000,
+  staleTime: 60_000,
+  refetchOnMount: false,
   retry: 1,
 });

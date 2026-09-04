@@ -4,11 +4,29 @@ import dynamic from "next/dynamic";
 import type { editor } from "monaco-editor";
 import type { OnMount } from "@monaco-editor/react";
 import { restoreViewState, saveViewState } from "@/lib/files/editor-state";
+import {
+  applySynapseTheme,
+  getSynapseMonacoTheme,
+  registerSynapseThemes,
+} from "@/lib/files/monaco-theme";
 import { bindEditorModel, installMonacoBridge, registerFileUri } from "@/lib/engine";
 
 const Monaco = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
-  loading: () => <div style={{ padding: 16, color: "var(--text-faint)", fontFamily: "var(--mono)", fontSize: 12 }}>Loading editor…</div>,
+  loading: () => (
+    <div
+      style={{
+        padding: 16,
+        color: "var(--text-faint)",
+        fontFamily: "var(--mono)",
+        fontSize: 12,
+        background: "var(--bg)",
+        height: "100%",
+      }}
+    >
+      Loading editor…
+    </div>
+  ),
 });
 
 export interface MonacoEditorProps {
@@ -19,12 +37,13 @@ export interface MonacoEditorProps {
   className?: string;
 }
 
-function getMonacoTheme(): "vs-dark" | "vs" {
-  if (typeof document === "undefined") return "vs-dark";
-  return document.documentElement.getAttribute("data-theme") === "light" ? "vs" : "vs-dark";
-}
-
-export const MonacoEditor = memo(function MonacoEditor({ fileId, value, language, onChange, className }: MonacoEditorProps) {
+export const MonacoEditor = memo(function MonacoEditor({
+  fileId,
+  value,
+  language,
+  onChange,
+  className,
+}: MonacoEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const fileIdRef = useRef(fileId);
 
@@ -38,7 +57,7 @@ export const MonacoEditor = memo(function MonacoEditor({ fileId, value, language
   useEffect(() => {
     const root = document.documentElement;
     const sync = () => {
-      import("monaco-editor").then((monaco) => monaco.editor.setTheme(getMonacoTheme()));
+      import("monaco-editor").then((monaco) => applySynapseTheme(monaco));
     };
     const obs = new MutationObserver(sync);
     obs.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
@@ -48,6 +67,8 @@ export const MonacoEditor = memo(function MonacoEditor({ fileId, value, language
   const handleMount: OnMount = useCallback(
     (ed, monaco) => {
       editorRef.current = ed;
+      registerSynapseThemes(monaco);
+      monaco.editor.setTheme(getSynapseMonacoTheme());
       void installMonacoBridge(monaco);
       registerFileUri(fileId);
       const model = bindEditorModel(monaco, fileId, language, value);
@@ -89,7 +110,8 @@ export const MonacoEditor = memo(function MonacoEditor({ fileId, value, language
       className={className}
       value={value}
       language={language}
-      theme={getMonacoTheme()}
+      theme={getSynapseMonacoTheme()}
+      beforeMount={(monaco) => registerSynapseThemes(monaco)}
       onChange={handleChange}
       onMount={handleMount}
       options={{
@@ -109,7 +131,7 @@ export const MonacoEditor = memo(function MonacoEditor({ fileId, value, language
         fontSize: 12.5,
         lineHeight: 21,
         padding: { top: 14, bottom: 14 },
-        renderLineHighlight: "all",
+        renderLineHighlight: "line",
         cursorBlinking: "smooth",
         cursorSmoothCaretAnimation: "on",
         multiCursorModifier: "alt",

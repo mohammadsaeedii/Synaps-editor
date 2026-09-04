@@ -12,6 +12,10 @@ type SyncStatus = "idle" | "syncing" | "synced" | "error" | "offline";
 let snapshotTimer: ReturnType<typeof setTimeout> | null = null;
 let fileTimers = new Map<string, ReturnType<typeof setTimeout>>();
 let hydrated = false;
+/** Suppress sync storms right after boot (Strict Mode + layout init). */
+let suppressSyncUntil = 0;
+/** Single-flight hydrate so React Strict Mode doesn't double-fetch. */
+let hydratePromise: Promise<void> | null = null;
 let status: SyncStatus = "idle";
 let lastError: string | null = null;
 const listeners = new Set<() => void>();
@@ -43,45 +47,57 @@ export function isWorkspaceHydrated(): boolean {
   return hydrated;
 }
 
+function canScheduleSync(): boolean {
+  return hydrated && Date.now() >= suppressSyncUntil;
+}
+
 /** Load remote workspace into Zustand (or push local seed if DB empty). */
 export async function hydrateWorkspaceFromServer(): Promise<void> {
-  try {
-    setStatus("syncing");
-    const { snapshot } = await workspaceService.getWorkspace();
-    const local = useAppStore.getState();
+  if (hydrated) return;
+  if (hydratePromise) return hydratePromise;
 
-    if (snapshot && Object.keys(snapshot.projects || {}).length > 0) {
-      // Preserve local-only secrets
-      const apiKey = local.settings.apiKey;
-      const apiKeys = local.settings.apiKeys;
-      useAppStore.getState().hydrate({
-        ...snapshot,
-        settings: {
-          ...snapshot.settings,
-          apiKey,
-          apiKeys: apiKeys || { anthropic: apiKey || "", openai: "", google: "" },
-          provider:
-            (snapshot.settings as { provider?: typeof local.settings.provider }).provider ||
-            local.settings.provider,
-        },
-      });
-    } else {
-      // First run: persist current local/seed state
-      const { _rev: _, ...data } = useAppStore.getState();
-      await workspaceService.saveWorkspace(data);
+  hydratePromise = (async () => {
+    try {
+      setStatus("syncing");
+      const { snapshot } = await workspaceService.getWorkspace();
+      const local = useAppStore.getState();
+
+      if (snapshot && Object.keys(snapshot.projects || {}).length > 0) {
+        const apiKey = local.settings.apiKey;
+        const apiKeys = local.settings.apiKeys;
+        useAppStore.getState().hydrate({
+          ...snapshot,
+          settings: {
+            ...snapshot.settings,
+            apiKey,
+            apiKeys: apiKeys || { anthropic: apiKey || "", openai: "", google: "" },
+            provider:
+              (snapshot.settings as { provider?: typeof local.settings.provider }).provider ||
+              local.settings.provider,
+          },
+        });
+      } else {
+        const { _rev: _, ...data } = useAppStore.getState();
+        await workspaceService.saveWorkspace(data);
+      }
+
+      hydrated = true;
+      // Layout/session init after mount must not immediately re-PUT the whole tree
+      suppressSyncUntil = Date.now() + 2500;
+      setStatus("synced");
+    } catch (err) {
+      hydrated = true;
+      suppressSyncUntil = Date.now() + 2500;
+      setStatus("offline", err instanceof Error ? err.message : "sync failed");
     }
+  })();
 
-    hydrated = true;
-    setStatus("synced");
-  } catch (err) {
-    hydrated = true; // allow UI offline with local cache
-    setStatus("offline", err instanceof Error ? err.message : "sync failed");
-  }
+  return hydratePromise;
 }
 
 /** Debounced full workspace PUT (projects, files, chats, …). */
 export function scheduleWorkspaceSync(delayMs = 900): void {
-  if (!hydrated) return;
+  if (!canScheduleSync()) return;
   if (snapshotTimer) clearTimeout(snapshotTimer);
   snapshotTimer = setTimeout(() => {
     void flushWorkspaceSync();
@@ -93,7 +109,7 @@ export async function flushWorkspaceSync(): Promise<void> {
     clearTimeout(snapshotTimer);
     snapshotTimer = null;
   }
-  if (!hydrated) return;
+  if (!canScheduleSync()) return;
 
   try {
     setStatus("syncing");
@@ -110,7 +126,7 @@ export async function flushWorkspaceSync(): Promise<void> {
  * Falls back to full snapshot sync if the file is not yet on the server.
  */
 export function scheduleFileContentSync(id: string, delayMs = 450): void {
-  if (!hydrated) return;
+  if (!canScheduleSync()) return;
   const prev = fileTimers.get(id);
   if (prev) clearTimeout(prev);
   fileTimers.set(
@@ -144,7 +160,6 @@ async function flushFileContentSync(id: string): Promise<void> {
     });
     setStatus("synced");
   } catch {
-    // File may not exist remotely yet — full sync will create it
     scheduleWorkspaceSync(200);
   }
 }
